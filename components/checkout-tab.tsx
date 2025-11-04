@@ -71,6 +71,7 @@ export function CheckoutTab() {
     if (success) {
       setCart([])
       setPayment("")
+      await loadProducts()
     }
 
     setIsLoading(false)

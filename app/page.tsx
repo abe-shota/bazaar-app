@@ -35,15 +35,15 @@ export default function BazaarApp() {
           </TabsList>
 
           <TabsContent value="checkout" className="mt-0">
-            <CheckoutTab />
+            <CheckoutTab key={activeTab === "checkout" ? "checkout-active" : "checkout-inactive"} />
           </TabsContent>
 
           <TabsContent value="products" className="mt-0">
-            <ProductEditTab />
+            <ProductEditTab key={activeTab === "products" ? "products-active" : "products-inactive"} />
           </TabsContent>
 
           <TabsContent value="summary" className="mt-0">
-            <SummaryTab />
+            <SummaryTab key={activeTab === "summary" ? "summary-active" : "summary-inactive"} />
           </TabsContent>
         </Tabs>
       </div>

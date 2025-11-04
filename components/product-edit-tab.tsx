@@ -35,7 +35,7 @@ export function ProductEditTab() {
     })
 
     if (product) {
-      setProducts([...products, product])
+      await loadProducts()
       setNewProduct({ name: "", price: "" })
     }
   }
@@ -43,7 +43,7 @@ export function ProductEditTab() {
   const handleDeleteProduct = async (id: string) => {
     const success = await storage.deleteProduct(id)
     if (success) {
-      setProducts(products.filter((p) => p.id !== id))
+      await loadProducts()
     }
   }
 
@@ -66,11 +66,7 @@ export function ProductEditTab() {
     })
 
     if (success) {
-      setProducts(
-        products.map((p) =>
-          p.id === id ? { ...p, name: editForm.name, price: Number.parseFloat(editForm.price) } : p,
-        ),
-      )
+      await loadProducts()
       setEditingId(null)
     }
   }
