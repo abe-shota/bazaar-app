@@ -50,13 +50,16 @@ export function SummaryTab() {
         // Group by name + price combination
         const key = `${item.product.name}-${item.product.price}`
         const existing = productMap.get(key)
+
+        const effectiveQuantity = item.product.price < 0 ? -item.quantity : item.quantity
+
         if (existing) {
-          existing.totalQuantity += item.quantity
+          existing.totalQuantity += effectiveQuantity
           existing.totalRevenue += item.product.price * item.quantity
         } else {
           productMap.set(key, {
             product: item.product,
-            totalQuantity: item.quantity,
+            totalQuantity: effectiveQuantity,
             totalRevenue: item.product.price * item.quantity,
           })
         }
