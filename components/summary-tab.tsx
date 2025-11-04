@@ -27,28 +27,34 @@ export function SummaryTab() {
   const [sales, setSales] = useState<Sale[]>([])
   const [summary, setSummary] = useState<ProductSummary[]>([])
   const [showResetDialog, setShowResetDialog] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     loadSales()
   }, [])
 
-  const loadSales = () => {
-    const loadedSales = storage.getSales()
+  const loadSales = async () => {
+    setIsLoading(true)
+    const loadedSales = await storage.getSales()
     setSales(loadedSales)
     calculateSummary(loadedSales)
+    setIsLoading(false)
   }
 
+  // This ensures price changes create separate entries in the summary
   const calculateSummary = (salesData: Sale[]) => {
     const productMap = new Map<string, ProductSummary>()
 
     salesData.forEach((sale) => {
       sale.items.forEach((item) => {
-        const existing = productMap.get(item.product.id)
+        // Group by name + price combination
+        const key = `${item.product.name}-${item.product.price}`
+        const existing = productMap.get(key)
         if (existing) {
           existing.totalQuantity += item.quantity
           existing.totalRevenue += item.product.price * item.quantity
         } else {
-          productMap.set(item.product.id, {
+          productMap.set(key, {
             product: item.product,
             totalQuantity: item.quantity,
             totalRevenue: item.product.price * item.quantity,
@@ -64,9 +70,11 @@ export function SummaryTab() {
     setShowResetDialog(true)
   }
 
-  const confirmReset = () => {
-    storage.clearSales()
-    loadSales()
+  const confirmReset = async () => {
+    const success = await storage.clearSales()
+    if (success) {
+      await loadSales()
+    }
     setShowResetDialog(false)
   }
 
@@ -105,17 +113,13 @@ export function SummaryTab() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle>商品別売上</CardTitle>
-          {sales.length > 0 && (
-            <Button variant="destructive" size="sm" onClick={handleResetClick}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              全データ削除
-            </Button>
-          )}
         </CardHeader>
         <CardContent>
-          {summary.length === 0 ? (
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">読み込み中...</p>
+          ) : summary.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">売上データがありません。</p>
           ) : (
             <div className="overflow-x-auto">
@@ -130,7 +134,7 @@ export function SummaryTab() {
                 </thead>
                 <tbody>
                   {summary.map((item) => (
-                    <tr key={item.product.id} className="border-b">
+                    <tr key={`${item.product.name}-${item.product.price}`} className="border-b">
                       <td className="py-3 px-4">{item.product.name}</td>
                       <td className="text-right py-3 px-4 font-mono">{item.totalQuantity}</td>
                       <td className="text-right py-3 px-4 font-mono">¥{item.product.price.toLocaleString()}</td>

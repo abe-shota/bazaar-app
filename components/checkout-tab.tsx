@@ -12,10 +12,16 @@ export function CheckoutTab() {
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [payment, setPayment] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    setProducts(storage.getProducts())
+    loadProducts()
   }, [])
+
+  const loadProducts = async () => {
+    const data = await storage.getProducts()
+    setProducts(data)
+  }
 
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const paymentAmount = Number.parseFloat(payment) || 0
@@ -48,8 +54,10 @@ export function CheckoutTab() {
     setCart(cart.filter((item) => item.product.id !== productId))
   }
 
-  const completeSale = () => {
+  const completeSale = async () => {
     if (cart.length === 0 || paymentAmount < total) return
+
+    setIsLoading(true)
 
     const sale: Sale = {
       id: Date.now().toString(),
@@ -58,9 +66,14 @@ export function CheckoutTab() {
       timestamp: Date.now(),
     }
 
-    storage.saveSale(sale)
-    setCart([])
-    setPayment("")
+    const success = await storage.saveSale(sale)
+
+    if (success) {
+      setCart([])
+      setPayment("")
+    }
+
+    setIsLoading(false)
   }
 
   return (
@@ -96,12 +109,12 @@ export function CheckoutTab() {
 
         <Button
           onClick={completeSale}
-          disabled={cart.length === 0 || paymentAmount < total}
+          disabled={cart.length === 0 || paymentAmount < total || isLoading}
           className="w-full h-14 text-lg"
           size="lg"
         >
           <ShoppingCart className="mr-2 h-5 w-5" />
-          会計を完了
+          {isLoading ? "処理中..." : "会計を完了"}
         </Button>
       </div>
 

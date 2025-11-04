@@ -13,30 +13,38 @@ export function ProductEditTab() {
   const [newProduct, setNewProduct] = useState({ name: "", price: "" })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: "", price: "" })
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    setProducts(storage.getProducts())
+    loadProducts()
   }, [])
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price) return
-
-    const product: Product = {
-      id: Date.now().toString(),
-      name: newProduct.name,
-      price: Number.parseFloat(newProduct.price),
-    }
-
-    const updatedProducts = [...products, product]
-    setProducts(updatedProducts)
-    storage.saveProducts(updatedProducts)
-    setNewProduct({ name: "", price: "" })
+  const loadProducts = async () => {
+    setIsLoading(true)
+    const data = await storage.getProducts()
+    setProducts(data)
+    setIsLoading(false)
   }
 
-  const handleDeleteProduct = (id: string) => {
-    const updatedProducts = products.filter((p) => p.id !== id)
-    setProducts(updatedProducts)
-    storage.saveProducts(updatedProducts)
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.price) return
+
+    const product = await storage.addProduct({
+      name: newProduct.name,
+      price: Number.parseFloat(newProduct.price),
+    })
+
+    if (product) {
+      setProducts([...products, product])
+      setNewProduct({ name: "", price: "" })
+    }
+  }
+
+  const handleDeleteProduct = async (id: string) => {
+    const success = await storage.deleteProduct(id)
+    if (success) {
+      setProducts(products.filter((p) => p.id !== id))
+    }
   }
 
   const startEdit = (product: Product) => {
@@ -49,15 +57,22 @@ export function ProductEditTab() {
     setEditForm({ name: "", price: "" })
   }
 
-  const saveEdit = (id: string) => {
+  const saveEdit = async (id: string) => {
     if (!editForm.name || !editForm.price) return
 
-    const updatedProducts = products.map((p) =>
-      p.id === id ? { ...p, name: editForm.name, price: Number.parseFloat(editForm.price) } : p,
-    )
-    setProducts(updatedProducts)
-    storage.saveProducts(updatedProducts)
-    setEditingId(null)
+    const success = await storage.updateProduct(id, {
+      name: editForm.name,
+      price: Number.parseFloat(editForm.price),
+    })
+
+    if (success) {
+      setProducts(
+        products.map((p) =>
+          p.id === id ? { ...p, name: editForm.name, price: Number.parseFloat(editForm.price) } : p,
+        ),
+      )
+      setEditingId(null)
+    }
   }
 
   return (
@@ -94,7 +109,9 @@ export function ProductEditTab() {
           <CardTitle>商品一覧</CardTitle>
         </CardHeader>
         <CardContent>
-          {products.length === 0 ? (
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">読み込み中...</p>
+          ) : products.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">商品がありません。上記から追加してください。</p>
           ) : (
             <div className="space-y-2">
